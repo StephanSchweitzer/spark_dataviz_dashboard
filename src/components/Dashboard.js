@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import useSocket from '../hooks/useSocket';
 import { ScatterChart, Scatter, CartesianGrid, Tooltip, Legend, XAxis, YAxis } from 'recharts';
 
 const Dashboard = () => {
     const { header, text, data } = useSocket('http://localhost:3001');
+    const [clientSideData, setClientSideData] = useState([]);
 
-    const chartData = Array.isArray(data) ? data : [data];
+    useEffect(() => {
+        setClientSideData(data);
+    }, [data]);
 
     return (
         <div>
@@ -20,10 +23,21 @@ const Dashboard = () => {
                 }}
             >
                 <CartesianGrid />
-                <XAxis type="number" dataKey="value" name="Value" unit="" />
-                <YAxis type="category" dataKey="date" name="Date" />
+                <XAxis
+                    type="number"
+                    dataKey="value"
+                    name="Value"
+                    unit=""
+                    domain={[1, 100]} // Set domain for Value axis
+                />
+                <YAxis
+                    type="number"
+                    dataKey="id"
+                    name="ID"
+                    domain={[1, 10]} // Set domain for ID axis
+                />
                 <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-                <Scatter name="Data Points" data={chartData} fill="#8884d8" />
+                <Scatter name="Data Points" data={clientSideData} fill="#8884d8" />
                 <Legend />
             </ScatterChart>
         </div>

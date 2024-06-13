@@ -1,5 +1,5 @@
 {
-  "name": "spark_streaming_dashboard",
+  "name": "sparkStreaming",
   "version": "1.0.0",
   "private": true,
   "dependencies": {

@@ -34,7 +34,12 @@ app.prepare().then(() => {
             const testData = {
                 header: 'Test Header',
                 text: 'Test text data',
-                data: [{ date: new Date().toLocaleTimeString(), value: Math.random() * 100 }]
+                data: [
+                    {
+                        id: Math.floor(Math.random() * 10) + 1, // Random int between 1 and 10
+                        value: Math.floor(Math.random() * 100) + 1 // Random int between 1 and 100
+                    }
+                ]
             };
             io.emit('FromAPI', testData);
         }, 5000);

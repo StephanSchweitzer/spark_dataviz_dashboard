@@ -1,33 +1,12 @@
 import React from 'react';
-import useSocket from '../hooks/useSocket';
-import { ScatterChart, Scatter, CartesianGrid, Tooltip, Legend, XAxis, YAxis } from 'recharts';
+import Dashboard from '../components/Dashboard';
 
-const Dashboard = () => {
-    const { header, text, data } = useSocket('http://localhost:3001');
-
-    const chartData = Array.isArray(data) ? data : [data];
-
+const HomePage = () => {
     return (
         <div>
-            {typeof header === 'string' && <h1>{header}</h1>}
-            {typeof text === 'string' && <p>{text}</p>}
-
-            <ScatterChart
-                width={800}
-                height={400}
-                margin={{
-                    top: 20, right: 20, bottom: 20, left: 20,
-                }}
-            >
-                <CartesianGrid />
-                <XAxis type="number" dataKey="value" name="Value" unit="" />
-                <YAxis type="category" dataKey="date" name="Date" />
-                <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-                <Scatter name="Data Points" data={chartData} fill="#8884d8" />
-                <Legend />
-            </ScatterChart>
+            <Dashboard />
         </div>
     );
 };
 
-export default Dashboard;
+export default HomePage;
