@@ -10,18 +10,26 @@ const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
     const server = express();
+
+    // Configure CORS to allow requests from any origin
     server.use(cors({
-        origin: "http://localhost:3000",
-        methods: ["GET", "POST"]
+        origin: true,
+        methods: ["GET", "POST"],
+        credentials: true
     }));
 
     const httpServer = http.createServer(server);
+
+    // Configure socket.io with CORS settings to allow requests from any origin
     const io = new Server(httpServer, {
         cors: {
-            origin: "http://localhost:3000",
-            methods: ["GET", "POST"]
+            origin: true,
+            methods: ["GET", "POST"],
+            credentials: true
         }
     });
+
+    let idCounter = 1;
 
     io.on('connection', (socket) => {
         console.log('New client connected');
@@ -36,8 +44,8 @@ app.prepare().then(() => {
                 text: 'Test text data',
                 data: [
                     {
-                        id: Math.floor(Math.random() * 10) + 1, // Random int between 1 and 10
-                        value: Math.floor(Math.random() * 100) + 1 // Random int between 1 and 100
+                        id: idCounter++ % 10 + 1, // Ensure id is between 1 and 10, cycling through
+                        value: Math.round(Math.random() * 100)
                     }
                 ]
             };

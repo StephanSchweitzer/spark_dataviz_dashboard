@@ -3,7 +3,7 @@ import useSocket from '../hooks/useSocket';
 import { ScatterChart, Scatter, CartesianGrid, Tooltip, Legend, XAxis, YAxis } from 'recharts';
 
 const Dashboard = () => {
-    const { header, text, data } = useSocket('http://localhost:3001');
+    const { header, text, data } = useSocket('ws://172.22.134.31:3001');
     const [clientSideData, setClientSideData] = useState([]);
 
     useEffect(() => {
