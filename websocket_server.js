@@ -1,55 +1,63 @@
 const express = require('express');
 const http = require('http');
-const { Server } = require('socket.io');
+const WebSocket = require('ws');
+const next = require('next');
 const cors = require('cors');
+const debug = require('debug')('myapp:server');
 
-const app = express();
-app.use(cors({
-    origin: "*", // Allow all origins
-    methods: ["GET", "POST"]
-}));
+const dev = process.env.NODE_ENV !== 'production';
+const app = next({ dev, dir: './src' });
+const handle = app.getRequestHandler();
 
-const httpServer = http.createServer(app);
-const io = new Server(httpServer, {
-    cors: {
-        origin: "*", // Allow all origins
-        methods: ["GET", "POST"]
-    }
-});
+app.prepare().then(() => {
+    const server = express();
 
-io.on('connection', (socket) => {
-    console.log('New client connected');
+    server.use(cors({
+        origin: true,
+        methods: ["GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"],
+        credentials: true
+    }));
 
-    socket.on('disconnect', (reason) => {
-        console.log('Client disconnected', reason);
-    });
+    const httpServer = http.createServer(server);
 
-    socket.on('error', (error) => {
-        console.error('Socket error:', error);
-    });
+    // Configure WebSocket server
+    const wss = new WebSocket.Server({ server: httpServer });
 
-    // Example: receiving data from client and broadcasting to all clients
-    socket.on('update', (data) => {
-        console.log('Received update:', data);
-        io.emit('FromAPI', data);
-    });
+    wss.on('connection', (ws) => {
+        debug('New client connected');
+        console.log('New client connected');
 
-    setInterval(() => {
-        const testData = {
-            header: 'Test Header',
-            text: 'Test text data',
-            data: [
-                {
-                    id: Math.floor(Math.random() * 10) + 1, // Random int between 1 and 10
-                    value: Math.floor(Math.random() * 100) + 1 // Random int between 1 and 100
+        ws.on('message', (message) => {
+            debug('Received message from client:', message);
+            console.log('Received message from client:', message);
+
+            // Broadcast message to all clients
+            wss.clients.forEach((client) => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(message);
                 }
-            ]
-        };
-        io.emit('FromAPI', testData);
-    }, 1500);
-});
+            });
+        });
 
-const PORT = 3001;
-httpServer.listen(PORT, () => {
-    console.log(`WebSocket server is running on port ${PORT}`);
+        ws.on('close', () => {
+            debug('Client disconnected');
+            console.log('Client disconnected');
+        });
+
+        ws.on('error', (error) => {
+            debug('WebSocket error:', error);
+            console.error('WebSocket error:', error);
+        });
+    });
+
+    server.all('*', (req, res) => {
+        debug('Handling request for %s', req.url);
+        return handle(req, res);
+    });
+
+    const PORT = process.env.PORT || 3001;
+    httpServer.listen(PORT, () => {
+        debug(`Server is running on port ${PORT}`);
+        console.log(`Server is running on port ${PORT}`);
+    });
 });

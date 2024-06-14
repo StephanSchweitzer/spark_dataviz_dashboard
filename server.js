@@ -3,6 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const next = require('next');
 const cors = require('cors');
+const debug = require('debug')('myapp:server');
 
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev, dir: './src' });
@@ -11,58 +12,54 @@ const handle = app.getRequestHandler();
 app.prepare().then(() => {
     const server = express();
 
-    // Configure CORS to allow requests from any origin
     server.use(cors({
         origin: true,
-        methods: ["GET", "POST"],
+        methods: ["GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"],
         credentials: true
     }));
 
     const httpServer = http.createServer(server);
 
-    // Configure socket.io with CORS settings to allow requests from any origin
+    // Configure socket.io
     const io = new Server(httpServer, {
         cors: {
             origin: true,
-            methods: ["GET", "POST"],
+            methods: ["GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"],
             credentials: true
         }
     });
 
-    let idCounter = 1;
-
     io.on('connection', (socket) => {
+        debug('New client connected');
         console.log('New client connected');
 
         socket.on('disconnect', () => {
+            debug('Client disconnected');
             console.log('Client disconnected');
         });
 
-        setInterval(() => {
-            const testData = {
-                header: 'Test Header',
-                text: 'Test text data',
-                data: [
-                    {
-                        id: idCounter++ % 10 + 1, // Ensure id is between 1 and 10, cycling through
-                        value: Math.round(Math.random() * 100)
-                    }
-                ]
-            };
-            io.emit('FromAPI', testData);
-        }, 5000);
+        socket.on('message', (message) => {
+            debug('Received message from client:', message);
+            console.log('Received message from client:', message);
 
-        socket.on('update', (data) => {
-            io.emit('FromAPI', data);
+            // Broadcast message to all clients
+            io.emit('message', message);
+        });
+
+        socket.on('error', (error) => {
+            debug('Socket error:', error);
+            console.error('Socket error:', error);
         });
     });
 
     server.all('*', (req, res) => {
+        debug('Handling request for %s', req.url);
         return handle(req, res);
     });
 
     const PORT = process.env.PORT || 3001;
     httpServer.listen(PORT, () => {
+        debug(`Server is running on port ${PORT}`);
         console.log(`Server is running on port ${PORT}`);
     });
 });
