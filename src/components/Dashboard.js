@@ -5,12 +5,28 @@ import {
 import {
     Container, Grid, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography
 } from '@mui/material';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+
+const theme = createTheme({
+    palette: {
+        background: {
+            default: '#000000', // Black background
+            paper: '#424242', // Dark grey for paper
+            innerPaper: '#616161' // Lighter grey for inner content
+        },
+        text: {
+            primary: '#FFFFFF', // White text for contrast
+        },
+    },
+});
 
 const Dashboard = () => {
     const [batchData, setBatchData] = useState([]);
     const [hatefulPercentage, setHatefulPercentage] = useState(0);
     const [offenders, setOffenders] = useState([]);
     const [totalMessages, setTotalMessages] = useState(0);
+    const [topWords, setTopWords] = useState([]);
 
     useEffect(() => {
         const socket = new WebSocket('ws://172.22.134.31:3001');
@@ -23,7 +39,6 @@ const Dashboard = () => {
             if (event.data instanceof Blob) {
                 const reader = new FileReader();
                 reader.onload = () => {
-                    //console.log(reader.result);
                     try {
                         const json = JSON.parse(reader.result);
                         console.log(json);
@@ -38,9 +53,12 @@ const Dashboard = () => {
                         setTotalMessages(json.totalMessages);
 
                         if (json.top5Users) {
-                            // Directly use the top5Users array from the JSON data
                             const sortedOffenders = json.top5Users.sort((a, b) => b.count - a.count); // Sort offenders by count in descending order
                             setOffenders(sortedOffenders);
+                        }
+
+                        if (json.top10Words) {
+                            setTopWords(json.top10Words);
                         }
                     } catch (e) {
                         console.error('Error parsing JSON:', e);
@@ -70,88 +88,139 @@ const Dashboard = () => {
 
     const COLORS = ['#FF0000', '#008000'];
 
+    const renderCustomizedLabel = ({ x, y, value }) => {
+        return (
+            <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central">
+                {value.toFixed(1)}%
+            </text>
+        );
+    };
+
+    const customTooltip = ({ active, payload }) => {
+        if (active && payload && payload.length) {
+            return (
+                <div className="custom-tooltip" style={{ backgroundColor: '#333', padding: '10px', borderRadius: '5px', color: '#fff' }}>
+                    <p>{`${payload[0].name} : ${payload[0].value.toFixed(1)}%`}</p>
+                </div>
+            );
+        }
+
+        return null;
+    };
+
     return (
-        <Container>
-            <Typography variant="h4" align="center" gutterBottom>
-                WebSocket Dashboard
-            </Typography>
-            <Grid container spacing={3}>
-                <Grid item xs={12}>
-                    <Paper elevation={3}>
-                        <Typography variant="h6" align="center" gutterBottom>
-                            Messages Over Time
-                        </Typography>
-                        <div style={{ width: '100%', height: 400 }}>
-                            <ResponsiveContainer>
-                                <LineChart data={batchData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="timestamp" />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Legend />
-                                    <Line type="monotone" dataKey="total" stroke="#8884d8" />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </Paper>
-                </Grid>
-                <Grid item xs={12}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Paper elevation={3} style={{ flex: 1, marginRight: '10px' }}>
-                            <Typography variant="h6" align="center" gutterBottom>
-                                Hateful vs Non-Hateful Messages
-                            </Typography>
-                            <div style={{ width: '100%', height: 400 }}>
-                                <ResponsiveContainer>
-                                    <PieChart>
-                                        <Pie
-                                            data={pieData}
-                                            dataKey="value"
-                                            nameKey="name"
-                                            cx="50%"
-                                            cy="50%"
-                                            outerRadius={100}
-                                            fill="#8884d8"
-                                            label
-                                        >
-                                            {pieData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip />
-                                    </PieChart>
-                                </ResponsiveContainer>
+        <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <Container style={{ backgroundColor: theme.palette.background.default, minHeight: '100vh', padding: '20px', display: 'flex', justifyContent: 'center' }}>
+                <Paper style={{ padding: '20px', backgroundColor: theme.palette.background.paper }}>
+                    <Typography variant="h4" align="center" gutterBottom style={{ color: theme.palette.text.primary }}>
+                        WebSocket Dashboard
+                    </Typography>
+                    <Grid container spacing={3}>
+                        <Grid item xs={12}>
+                            <Paper elevation={3} style={{ backgroundColor: theme.palette.background.innerPaper }}>
+                                <Typography variant="h6" align="center" gutterBottom style={{ color: theme.palette.text.primary }}>
+                                    Messages Over Time
+                                </Typography>
+                                <div style={{ width: '100%', height: 400 }}>
+                                    <ResponsiveContainer>
+                                        <LineChart data={batchData}>
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis dataKey="timestamp" stroke="#FFFFFF" />
+                                            <YAxis stroke="#FFFFFF" />
+                                            <Tooltip />
+                                            <Legend />
+                                            <Line type="monotone" dataKey="total" stroke="#8884d8" />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </Paper>
+                        </Grid>
+                        <Grid item xs={12}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Paper elevation={3} style={{ flex: 1, marginRight: '10px', backgroundColor: theme.palette.background.innerPaper }}>
+                                    <Typography variant="h6" align="center" gutterBottom style={{ color: theme.palette.text.primary }}>
+                                        Hateful vs Non-Hateful Messages
+                                    </Typography>
+                                    <div style={{ width: '100%', height: 400 }}>
+                                        <ResponsiveContainer>
+                                            <PieChart>
+                                                <Pie
+                                                    data={pieData}
+                                                    dataKey="value"
+                                                    nameKey="name"
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    outerRadius={100}
+                                                    fill="#8884d8"
+                                                    label={renderCustomizedLabel}
+                                                    labelLine={false}
+                                                >
+                                                    {pieData.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                    ))}
+                                                </Pie>
+                                                <Tooltip content={customTooltip} />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </Paper>
+                                <Paper elevation={3} style={{ flex: 1, marginLeft: '10px', backgroundColor: theme.palette.background.innerPaper }}>
+                                    <Typography variant="h6" align="center" gutterBottom style={{ color: theme.palette.text.primary }}>
+                                        Top Offenders
+                                    </Typography>
+                                    <TableContainer component={Paper} style={{ backgroundColor: theme.palette.background.innerPaper }}>
+                                        <Table>
+                                            <TableHead>
+                                                <TableRow>
+                                                    <TableCell style={{ color: theme.palette.text.primary }}>User</TableCell>
+                                                    <TableCell align="right" style={{ color: theme.palette.text.primary }}>Hateful Messages</TableCell>
+                                                </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                                {offenders.map((offender, index) => (
+                                                    <TableRow key={index}>
+                                                        <TableCell component="th" scope="row" style={{ color: theme.palette.text.primary }}>
+                                                            {offender.user}
+                                                        </TableCell>
+                                                        <TableCell align="right" style={{ color: theme.palette.text.primary }}>{offender.count}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                </Paper>
+                                <Paper elevation={3} style={{ flex: 1, marginLeft: '10px', backgroundColor: theme.palette.background.innerPaper }}>
+                                    <Typography variant="h6" align="center" gutterBottom style={{ color: theme.palette.text.primary }}>
+                                        Top 10 Words
+                                    </Typography>
+                                    <TableContainer component={Paper} style={{ backgroundColor: theme.palette.background.innerPaper }}>
+                                        <Table>
+                                            <TableHead>
+                                                <TableRow>
+                                                    <TableCell style={{ color: theme.palette.text.primary }}>Word</TableCell>
+                                                    <TableCell align="right" style={{ color: theme.palette.text.primary }}>Count</TableCell>
+                                                </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                                {topWords.map((word, index) => (
+                                                    <TableRow key={index}>
+                                                        <TableCell component="th" scope="row" style={{ color: theme.palette.text.primary }}>
+                                                            {word.word}
+                                                        </TableCell>
+                                                        <TableCell align="right" style={{ color: theme.palette.text.primary }}>{word.count}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                </Paper>
                             </div>
-                        </Paper>
-                        <Paper elevation={3} style={{ flex: 1, marginLeft: '10px' }}>
-                            <Typography variant="h6" align="center" gutterBottom>
-                                Top Offenders
-                            </Typography>
-                            <TableContainer component={Paper}>
-                                <Table>
-                                    <TableHead>
-                                        <TableRow>
-                                            <TableCell>User</TableCell>
-                                            <TableCell align="right">Hateful Messages</TableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {offenders.map((offender, index) => (
-                                            <TableRow key={index}>
-                                                <TableCell component="th" scope="row">
-                                                    {offender.user}
-                                                </TableCell>
-                                                <TableCell align="right">{offender.count}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </TableContainer>
-                        </Paper>
-                    </div>
-                </Grid>
-            </Grid>
-        </Container>
+                        </Grid>
+                    </Grid>
+                </Paper>
+            </Container>
+        </ThemeProvider>
     );
 };
 
