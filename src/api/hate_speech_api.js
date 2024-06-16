@@ -28,17 +28,13 @@ app.post('/detect', (req, res) => {
 });
 
 app.post('/messages', async (req, res) => {
-    const { message } = req.body;
+    const messages = req.body; // Expecting an array of messages
 
     try {
-        await Message.findOneAndUpdate(
-            { id: message.id },
-            message,
-            { upsert: true, new: true }
-        );
-        res.json({ message: 'Message updated successfully' });
+        await Message.insertMany(messages);
+        res.json({ message: 'Messages posted successfully' });
     } catch (error) {
-        console.error('Error updating message:', error);
+        console.error('Error posting messages:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
