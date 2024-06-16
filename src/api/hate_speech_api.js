@@ -6,7 +6,14 @@ const Message = require('../models/message');  // Adjust the path to your model
 const app = express();
 const port = 3002;
 
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '50mb', type: 'application/json' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true, parameterLimit: 50000 }));
+
+// Middleware to set UTF-8 charset for responses
+app.use((req, res, next) => {
+    res.setHeader('Content-Type', 'application/json; charset=UTF-8');
+    next();
+});
 
 mongoose.connect('mongodb://172.22.128.1:27017/messages', { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => console.log('Connected to MongoDB'))
@@ -17,6 +24,7 @@ mongoose.connect('mongodb://172.22.128.1:27017/messages', { useNewUrlParser: tru
 
 app.post('/detect', (req, res) => {
     const messages = req.body;
+    console.log(messages);
     const responses = messages.map((message) => {
         const isHateful = Math.random() < 0.2 ? 1 : 0;
         return {
