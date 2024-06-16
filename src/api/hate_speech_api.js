@@ -1,0 +1,64 @@
+const express = require('express');
+const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
+const Message = require('../models/message');  // Adjust the path to your model
+
+const app = express();
+const port = 3002;
+
+app.use(bodyParser.json());
+
+mongoose.connect('mongodb://172.22.128.1:27017/messages', { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => console.log('Connected to MongoDB'))
+    .catch((err) => {
+        console.error('Failed to connect to MongoDB', err);
+        process.exit(1);
+    });
+
+app.post('/detect', (req, res) => {
+    const messages = req.body;
+    const responses = messages.map((message) => {
+        const isHateful = Math.random() < 0.2 ? 1 : 0;
+        return {
+            id: message.id,
+            is_hateful: isHateful,
+        };
+    });
+    res.json(responses);
+});
+
+app.post('/messages', async (req, res) => {
+    const { message } = req.body;
+
+    try {
+        await Message.findOneAndUpdate(
+            { id: message.id },
+            message,
+            { upsert: true, new: true }
+        );
+        res.json({ message: 'Message updated successfully' });
+    } catch (error) {
+        console.error('Error updating message:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+app.get('/messages', async (req, res) => {
+    const { user, is_hateful } = req.query;
+
+    const query = {};
+    if (user) query.user = user;
+    if (is_hateful !== undefined) query.is_hateful = is_hateful === 'true';
+
+    try {
+        const messages = await Message.find(query);
+        res.json(messages);
+    } catch (error) {
+        console.error('Error fetching messages:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+app.listen(port, () => {
+    console.log(`Hate messages API running on http://localhost:${port}`);
+});

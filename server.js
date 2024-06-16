@@ -1,9 +1,10 @@
 const express = require('express');
 const http = require('http');
-const { Server } = require('socket.io');
+const WebSocket = require('ws');
 const next = require('next');
 const cors = require('cors');
 const debug = require('debug')('myapp:server');
+const axios = require('axios');
 
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev, dir: './src' });
@@ -20,35 +21,50 @@ app.prepare().then(() => {
 
     const httpServer = http.createServer(server);
 
-    // Configure socket.io
-    const io = new Server(httpServer, {
-        cors: {
-            origin: true,
-            methods: ["GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"],
-            credentials: true
-        }
-    });
+    // Configure WebSocket server
+    const wss = new WebSocket.Server({ server: httpServer });
 
-    io.on('connection', (socket) => {
+    wss.on('connection', (ws) => {
         debug('New client connected');
         console.log('New client connected');
 
-        socket.on('disconnect', () => {
+        ws.on('message', async (message) => {
+            debug('Received message from client:', message);
+            console.log('Received message from client:', message);
+
+            // Parse the received message
+            let parsedMessage;
+            try {
+                parsedMessage = JSON.parse(message);
+            } catch (err) {
+                console.error('Failed to parse message. Error:', err);
+                return;
+            }
+
+            // Send message to hatespeech_api
+            try {
+                await axios.post('http://localhost:3002/messages', { message: parsedMessage });
+                console.log('Message sent to hatespeech_api');
+            } catch (err) {
+                console.error('Failed to send message to hatespeech_api. Error:', err);
+            }
+
+            // Broadcast message to all clients
+            wss.clients.forEach((client) => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(message);
+                }
+            });
+        });
+
+        ws.on('close', () => {
             debug('Client disconnected');
             console.log('Client disconnected');
         });
 
-        socket.on('message', (message) => {
-            debug('Received message from client:', message);
-            console.log('Received message from client:', message);
-
-            // Broadcast message to all clients
-            io.emit('message', message);
-        });
-
-        socket.on('error', (error) => {
-            debug('Socket error:', error);
-            console.error('Socket error:', error);
+        ws.on('error', (error) => {
+            debug('WebSocket error:', error);
+            console.error('WebSocket error:', error);
         });
     });
 
