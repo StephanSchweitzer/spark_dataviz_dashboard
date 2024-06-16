@@ -27,6 +27,7 @@ app.post('/detect', (req, res) => {
     const responses = messages.map((message) => {
         const isHateful = Math.random() < 0.2 ? 1 : 0;
         return {
+
             id: message.id,
             is_hateful: isHateful,
         };
@@ -37,9 +38,12 @@ app.post('/detect', (req, res) => {
 app.post('/messages', async (req, res) => {
     const messages = req.body; // Expecting an array of messages
 
+    console.log("Received messages:");
+
     try {
-        await Message.insertMany(messages);
+        await Message.insertMany(messages.messages);
         res.json({ message: 'Messages posted successfully' });
+        console.log("saved");
     } catch (error) {
         console.error('Error posting messages:', error);
         res.status(500).json({ error: 'Internal Server Error' });
