@@ -10,7 +10,7 @@ const Dashboard = () => {
     const [batchData, setBatchData] = useState([]);
     const [hatefulPercentage, setHatefulPercentage] = useState(0);
     const [offenders, setOffenders] = useState([]);
-    const [totalMessages, setTotalMessages] = useState([]);
+    const [totalMessages, setTotalMessages] = useState(0);
 
     useEffect(() => {
         const socket = new WebSocket('ws://172.22.134.31:3001');
@@ -23,9 +23,10 @@ const Dashboard = () => {
             if (event.data instanceof Blob) {
                 const reader = new FileReader();
                 reader.onload = () => {
-                    console.log(reader.result);
+                    //console.log(reader.result);
                     try {
                         const json = JSON.parse(reader.result);
+                        console.log(json);
                         setBatchData(prevData => [
                             ...prevData,
                             {
@@ -34,11 +35,13 @@ const Dashboard = () => {
                             }
                         ]);
                         setHatefulPercentage(json.hateSpeechRatio);
-                        const sortedOffenders = Object.entries(json.top5Users)
-                            .map(([user, count]) => ({ user, count }))
-                            .sort((a, b) => b.count - a.count); // Sort offenders by count in descending order
-                        setOffenders(sortedOffenders);
                         setTotalMessages(json.totalMessages);
+
+                        if (json.top5Users) {
+                            // Directly use the top5Users array from the JSON data
+                            const sortedOffenders = json.top5Users.sort((a, b) => b.count - a.count); // Sort offenders by count in descending order
+                            setOffenders(sortedOffenders);
+                        }
                     } catch (e) {
                         console.error('Error parsing JSON:', e);
                     }
@@ -61,8 +64,8 @@ const Dashboard = () => {
     }, []);
 
     const pieData = [
-        { name: 'Hateful', value: hatefulPercentage },
-        { name: 'Non-Hateful', value: 100 - hatefulPercentage },
+        { name: 'Hateful', value: hatefulPercentage * 100 },
+        { name: 'Non-Hateful', value: 100 - (hatefulPercentage * 100) },
     ];
 
     const COLORS = ['#FF0000', '#008000'];
