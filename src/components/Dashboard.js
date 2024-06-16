@@ -23,17 +23,18 @@ const Dashboard = () => {
             if (event.data instanceof Blob) {
                 const reader = new FileReader();
                 reader.onload = () => {
+                    console.log(reader.result);
                     try {
                         const json = JSON.parse(reader.result);
                         setBatchData(prevData => [
                             ...prevData,
                             {
-                                timestamp: new Date(json.batchTimestamp).toLocaleString(),
-                                total: json.totalMessages
+                                timestamp: new Date(json.timestamp).toLocaleString(),
+                                total: json.batchSize
                             }
                         ]);
-                        setHatefulPercentage(json.hatefulMessagesPercentage);
-                        const sortedOffenders = Object.entries(json.frequentHatefulUsers)
+                        setHatefulPercentage(json.hateSpeechRatio);
+                        const sortedOffenders = Object.entries(json.top5Users)
                             .map(([user, count]) => ({ user, count }))
                             .sort((a, b) => b.count - a.count); // Sort offenders by count in descending order
                         setOffenders(sortedOffenders);

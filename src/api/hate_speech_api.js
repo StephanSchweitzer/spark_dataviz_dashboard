@@ -41,7 +41,7 @@ app.post('/messages', async (req, res) => {
     console.log("Received messages:");
 
     try {
-        await Message.insertMany(messages.messages);
+        await Message.insertMany(messages.message.messages);
         res.json({ message: 'Messages posted successfully' });
         console.log("saved");
     } catch (error) {

@@ -26,9 +26,11 @@ app.prepare().then(() => {
 
     wss.on('connection', (ws) => {
         debug('New client connected');
+        console.log('New client connected');
 
         ws.on('message', async (message) => {
             debug('Received message from client:', message);
+            console.log('Received message from client:', message);
 
             // Parse the received message
             let parsedMessage;
@@ -39,36 +41,26 @@ app.prepare().then(() => {
                 return;
             }
 
-            // Ensure the message structure is correct
-            if (parsedMessage && Array.isArray(parsedMessage.messages)) {
-                const messages = parsedMessage.messages.map(msg => ({
-                    id: msg.id,
-                    text: msg.text,
-                    user: msg.user,
-                    is_hateful: msg.is_hateful
-                }));
+            // Send message to hatespeech_api
+            try {
 
-                // Send message to hatespeech_api
-                try {
-                    await axios.post('http://localhost:3002/messages', { messages });
-                    debug('Message sent to hatespeech_api');
-                } catch (err) {
-                    console.error('Failed to send message to hatespeech_api. Error:', err);
-                }
-
-                // Broadcast message to all clients
-                wss.clients.forEach((client) => {
-                    if (client.readyState === WebSocket.OPEN) {
-                        client.send(JSON.stringify({ messages }));
-                    }
-                });
-            } else {
-                console.error('Invalid message structure:', parsedMessage);
+                await axios.post('http://localhost:3002/messages', { message: parsedMessage });
+                console.log('Message sent to hatespeech_api');
+            } catch (err) {
+                console.error('Failed to send message to hatespeech_api. Error:', err);
             }
+
+            // Broadcast message to all clients
+            wss.clients.forEach((client) => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(message);
+                }
+            });
         });
 
         ws.on('close', () => {
             debug('Client disconnected');
+            console.log('Client disconnected');
         });
 
         ws.on('error', (error) => {
