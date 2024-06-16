@@ -24,7 +24,6 @@ mongoose.connect('mongodb://172.22.128.1:27017/messages', { useNewUrlParser: tru
 
 app.post('/detect', (req, res) => {
     const messages = req.body;
-    console.log(messages);
     const responses = messages.map((message) => {
         const isHateful = Math.random() < 0.2 ? 1 : 0;
         return {
