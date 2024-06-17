@@ -3,7 +3,7 @@ import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
 import {
-    Container, Grid, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography
+    Container, Grid, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, Box
 } from '@mui/material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -26,7 +26,9 @@ const Dashboard = () => {
     const [hatefulPercentage, setHatefulPercentage] = useState(0);
     const [offenders, setOffenders] = useState([]);
     const [totalMessages, setTotalMessages] = useState(0);
+    const [totalHatefulMessages, setTotalHatefulMessages] = useState(0);
     const [topWords, setTopWords] = useState([]);
+    const [top5ActiveUsers, setTop5ActiveUsers] = useState([]);
 
     useEffect(() => {
         const socket = new WebSocket('ws://172.22.134.31:3001');
@@ -46,15 +48,22 @@ const Dashboard = () => {
                             ...prevData,
                             {
                                 timestamp: new Date(json.timestamp).toLocaleString(),
-                                total: json.batchSize
+                                total: json.batchSize,
+                                hateful: json.hatefulBatchSize
                             }
                         ]);
                         setHatefulPercentage(json.hateSpeechRatio);
                         setTotalMessages(json.totalMessages);
+                        setTotalHatefulMessages(json.totalHatefulMessages);
 
                         if (json.top5Users) {
                             const sortedOffenders = json.top5Users.sort((a, b) => b.count - a.count); // Sort offenders by count in descending order
                             setOffenders(sortedOffenders);
+                        }
+
+                        if (json.top5ActiveUsers) {
+                            const sortedActiveUsers = json.top5ActiveUsers.sort((a, b) => b.count - a.count); // Sort active users by count in descending order
+                            setTop5ActiveUsers(sortedActiveUsers);
                         }
 
                         if (json.top10Words) {
@@ -128,11 +137,16 @@ const Dashboard = () => {
                                             <CartesianGrid strokeDasharray="3 3" />
                                             <XAxis dataKey="timestamp" stroke="#FFFFFF" />
                                             <YAxis stroke="#FFFFFF" />
-                                            <Tooltip />
+                                            <Tooltip
+                                                contentStyle={{ backgroundColor: '#FFFFFF', color: '#000000' }}
+                                                itemStyle={{ color: '#000000' }}
+                                            />
                                             <Legend />
-                                            <Line type="monotone" dataKey="total" stroke="#8884d8" />
+                                            <Line type="monotone" dataKey="total" stroke="#FFFFFF" />
+                                            <Line type="monotone" dataKey="hateful" stroke="#FF0000" />
                                         </LineChart>
                                     </ResponsiveContainer>
+
                                 </div>
                             </Paper>
                         </Grid>
@@ -164,6 +178,15 @@ const Dashboard = () => {
                                             </PieChart>
                                         </ResponsiveContainer>
                                     </div>
+                                    <Box display="flex" justifyContent="space-between" flexDirection={"column"} padding="10px">
+                                        <Typography variant="h6" style={{ color: theme.palette.text.primary, paddingBottom:"20px" }}>
+                                            Total Messages: {totalMessages}
+                                        </Typography>
+
+                                        <Typography variant="h6" style={{ color: theme.palette.text.primary }}>
+                                            Total Hateful Messages: {totalHatefulMessages}
+                                        </Typography>
+                                    </Box>
                                 </Paper>
                                 <Paper elevation={3} style={{ flex: 1, marginLeft: '10px', backgroundColor: theme.palette.background.innerPaper }}>
                                     <Typography variant="h6" align="center" gutterBottom style={{ color: theme.palette.text.primary }}>
@@ -184,6 +207,29 @@ const Dashboard = () => {
                                                             {offender.user}
                                                         </TableCell>
                                                         <TableCell align="right" style={{ color: theme.palette.text.primary }}>{offender.count}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                    <Typography variant="h6" align="center" gutterBottom style={{ color: theme.palette.text.primary, marginTop: '10px' }}>
+                                        Top 5 Active Users
+                                    </Typography>
+                                    <TableContainer component={Paper} style={{ backgroundColor: theme.palette.background.innerPaper }}>
+                                        <Table>
+                                            <TableHead>
+                                                <TableRow>
+                                                    <TableCell style={{ color: theme.palette.text.primary }}>User</TableCell>
+                                                    <TableCell align="right" style={{ color: theme.palette.text.primary }}>Total Messages</TableCell>
+                                                </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                                {top5ActiveUsers.map((user, index) => (
+                                                    <TableRow key={index}>
+                                                        <TableCell component="th" scope="row" style={{ color: theme.palette.text.primary }}>
+                                                            {user.user}
+                                                        </TableCell>
+                                                        <TableCell align="right" style={{ color: theme.palette.text.primary }}>{user.count}</TableCell>
                                                     </TableRow>
                                                 ))}
                                             </TableBody>
@@ -225,3 +271,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
