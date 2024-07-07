@@ -9,6 +9,7 @@ const axios = require('axios');
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev, dir: './src' });
 const handle = app.getRequestHandler();
+const url = require('url');
 
 app.prepare().then(() => {
     const server = express();
@@ -19,14 +20,23 @@ app.prepare().then(() => {
         credentials: true
     }));
 
+    let sparkClient = null;
     const httpServer = http.createServer(server);
 
     // Configure WebSocket server
     const wss = new WebSocket.Server({ server: httpServer });
 
-    wss.on('connection', (ws) => {
-        debug('New client connected');
-        console.log('New client connected');
+    wss.on('connection', (ws, req) => {
+        const parameters = url.parse(req.url, true);
+        const clientType = parameters.query.clientType;
+
+        console.log(`New client connected: ${clientType}`);
+
+        if (clientType === 'spark')
+        {
+            sparkClient = ws;
+            console.log('Spark client connected');
+        }
 
         ws.on('message', async (message) => {
             debug('Received message from client:', message);
@@ -41,21 +51,33 @@ app.prepare().then(() => {
                 return;
             }
 
-            // Send message to hatespeech_api
-            try {
-
-                await axios.post('http://localhost:3002/messages', { message: parsedMessage });
-                console.log('Message sent to hatespeech_api');
-            } catch (err) {
-                console.error('Failed to send message to hatespeech_api. Error:', err);
+            if (parsedMessage.type == "inbound")
+            {
+                console.log(JSON.stringify(parsedMessage))
+                console.log("sending to spark")
+                //ws.send(JSON.stringify(parsedMessage));
+                sparkClient.send(JSON.stringify(parsedMessage))
             }
 
-            // Broadcast message to all clients
-            wss.clients.forEach((client) => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(message);
+            //This section only exists because I haven't saved to mongodb in spark yet, and will soon be removed
+            else
+            {
+                try {
+
+                    await axios.post('http://localhost:3002/messages', { message: parsedMessage });
+                    console.log('Message sent to hatespeech_api');
+                } catch (err) {
+                    console.error('Failed to send message to hatespeech_api. Error:', err);
                 }
-            });
+
+                // Broadcast message to all clients
+                wss.clients.forEach((client) => {
+                    if (client.readyState === WebSocket.OPEN) {
+                        client.send(message);
+                    }
+                });
+            }
+
         });
 
         ws.on('close', () => {
