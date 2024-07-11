@@ -41,9 +41,9 @@ app.post('/messages', async (req, res) => {
     console.log("Received messages:");
 
     try {
-        await Message.insertMany(messages.message.messages);
+        //await Message.insertMany(messages.message.messages);
         res.json({ message: 'Messages posted successfully' });
-        console.log("saved");
+        console.log("nothing happened, insert many is commented");
     } catch (error) {
         console.error('Error posting messages:', error);
         res.status(500).json({ error: 'Internal Server Error' });

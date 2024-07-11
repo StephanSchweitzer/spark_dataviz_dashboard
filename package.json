@@ -9,7 +9,7 @@
     "start": "next start",
     "server": "nodemon server.js"
   },
-  "author": "Your Name",
+  "author": "Stephan Schweitzer",
   "license": "MIT",
   "dependencies": {
     "@emotion/react": "^11.11.4",
