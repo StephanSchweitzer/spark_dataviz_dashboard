@@ -57,7 +57,7 @@ const Dashboard = () => {
                         setTotalHatefulMessages(json.totalHatefulMessages);
 
                         if (json.top5Users) {
-                            const sortedOffenders = json.top5Users.sort((a, b) => b.count - a.count); // Sort offenders by count in descending order
+                            const sortedOffenders = json.top5Users.sort((a, b) => b.hateful_count - a.hateful_count); // Sort by hateful_count in descending order
                             setOffenders(sortedOffenders);
                         }
 
@@ -206,7 +206,7 @@ const Dashboard = () => {
                                                         <TableCell component="th" scope="row" style={{ color: theme.palette.text.primary }}>
                                                             {offender.user}
                                                         </TableCell>
-                                                        <TableCell align="right" style={{ color: theme.palette.text.primary }}>{offender.count}</TableCell>
+                                                        <TableCell align="right" style={{ color: theme.palette.text.primary }}>{offender.total_count}</TableCell>
                                                     </TableRow>
                                                 ))}
                                             </TableBody>
@@ -229,7 +229,7 @@ const Dashboard = () => {
                                                         <TableCell component="th" scope="row" style={{ color: theme.palette.text.primary }}>
                                                             {user.user}
                                                         </TableCell>
-                                                        <TableCell align="right" style={{ color: theme.palette.text.primary }}>{user.count}</TableCell>
+                                                        <TableCell align="right" style={{ color: theme.palette.text.primary }}>{user.total_count}</TableCell>
                                                     </TableRow>
                                                 ))}
                                             </TableBody>
